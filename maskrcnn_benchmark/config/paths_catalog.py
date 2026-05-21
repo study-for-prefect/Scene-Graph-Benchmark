@@ -7,7 +7,7 @@ import copy
 
 class DatasetCatalog(object):
     #DATA_DIR = "/home/users/alatif/data/ImageCorpora/"
-    DATA_DIR = "/media/rafi/Samsung_T5/_DATASETS/"
+    DATA_DIR = "D:\school\pythonProject\SSG\Scene-Graph-Benchmark\datasets"
     DATASETS = {
         "coco_2017_train": {
             "img_dir": "coco/train2017",
@@ -119,6 +119,12 @@ class DatasetCatalog(object):
             "image_file": "vg/image_data.json",
             "capgraphs_file": "vg/vg_capgraphs_anno.json",
         },
+        "custom_dataset_train": {
+            "img_dir": "D:/label/labelme_img/building_block/data",
+            "dict_file": "D:/school/pythonProject/SSG/Scene-Graph-Benchmark/build_h5/custom_dict.json",
+            "h5_file": "D:/school/pythonProject/SSG/Scene-Graph-Benchmark/build_h5/custom_data.h5",
+            "image_file": "D:/school/pythonProject/SSG/Scene-Graph-Benchmark/build_h5/custom_image_data.json",  # 新增项
+        },
     }
 
     @staticmethod
@@ -166,6 +172,22 @@ class DatasetCatalog(object):
                 factory="VGDataset",
                 args=args,
             )
+        elif "custom_dataset" in name:
+            attrs = DatasetCatalog.DATASETS[name]
+
+            # 解析命名后缀，自动注入 split 参数
+            split_mode = "train" if "train" in name else "val"
+
+            args = dict(
+                split=split_mode,
+                img_dir=attrs["img_dir"],
+                roidb_file=attrs["h5_file"],
+                dict_file=attrs["dict_file"],
+                image_file=attrs["image_file"],
+                filter_non_overlap=False,  # 强制关闭边界框重叠验证
+                filter_empty_rels=False  # 强制关闭空关系图验证
+            )
+            return dict(factory="VGDataset", args=args)
 
         raise RuntimeError("Dataset not available: {}".format(name))
 

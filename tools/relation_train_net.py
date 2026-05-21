@@ -345,6 +345,12 @@ def main():
 
     cfg.merge_from_file(args.config_file)
     cfg.merge_from_list(args.opts)
+    # 强制覆盖配置系统，直接注入自定义数据集
+    cfg.DATASETS.TRAIN = ("custom_dataset_train",)
+    cfg.DATASETS.VAL = ("custom_dataset_train",)
+    cfg.DATASETS.TEST = ("custom_dataset_train",)
+    # 显式设定权重保存周期（此处以每 2500 轮输出一次为例）
+    cfg.SOLVER.CHECKPOINT_PERIOD = 2500
     cfg.freeze()
 
     output_dir = cfg.OUTPUT_DIR

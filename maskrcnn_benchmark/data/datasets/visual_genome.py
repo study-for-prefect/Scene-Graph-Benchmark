@@ -63,6 +63,7 @@ class VGDataset(torch.utils.data.Dataset):
             )
 
             self.filenames, self.img_info = load_image_filenames(img_dir, image_file) # length equals to split_mask
+
             self.filenames = [self.filenames[i] for i in np.where(self.split_mask)[0]]
             self.img_info = [self.img_info[i] for i in np.where(self.split_mask)[0]]
 
@@ -97,7 +98,7 @@ class VGDataset(torch.utils.data.Dataset):
 
     def get_statistics(self):
         fg_matrix, bg_matrix = get_VG_statistics(img_dir=self.img_dir, roidb_file=self.roidb_file, dict_file=self.dict_file,
-                                                image_file=self.image_file, must_overlap=True)
+                                                image_file=self.image_file, must_overlap=False)
         eps = 1e-3
         bg_matrix += 1
         fg_matrix[:, :, 0] = bg_matrix
@@ -190,7 +191,7 @@ class VGDataset(torch.utils.data.Dataset):
 
 def get_VG_statistics(img_dir, roidb_file, dict_file, image_file, must_overlap=True):
     train_data = VGDataset(split='train', img_dir=img_dir, roidb_file=roidb_file, 
-                        dict_file=dict_file, image_file=image_file, num_val_im=5000, 
+                        dict_file=dict_file, image_file=image_file, num_val_im=0,
                         filter_duplicate_rels=False)
     num_obj_classes = len(train_data.ind_to_classes)
     num_rel_classes = len(train_data.ind_to_predicates)
@@ -314,12 +315,15 @@ def load_image_filenames(img_dir, image_file):
         if os.path.exists(filename):
             fns.append(filename)
             img_info.append(img)
-    assert len(fns) == 108073
-    assert len(img_info) == 108073
+    # assert len(fns) == 108073
+    # assert len(img_info) == 108073
     return fns, img_info
 
 
 def load_graphs(roidb_file, split, num_im, num_val_im, filter_empty_rels, filter_non_overlap):
+    # 在 def load_graphs(...) 下方首行插入
+    filter_non_overlap = False
+    filter_empty_rels = True
     """
     Load the file containing the GT boxes and relations, as well as the dataset split
     Parameters:
@@ -350,11 +354,12 @@ def load_graphs(roidb_file, split, num_im, num_val_im, filter_empty_rels, filter
     image_index = np.where(split_mask)[0]
     if num_im > -1:
         image_index = image_index[:num_im]
-    if num_val_im > 0:
-        if split == 'val':
-            image_index = image_index[:num_val_im]
-        elif split == 'train':
-            image_index = image_index[num_val_im:]
+    # 强制停用基于 5000 阈值的验证集硬切分
+    # if num_val_im > 0:
+    #     if split == 'val':
+    #         image_index = image_index[:num_val_im]
+    #     elif split == 'train':
+    #         image_index = image_index[num_val_im:]
 
 
     split_mask = np.zeros_like(data_split).astype(bool)

@@ -35,3 +35,19 @@ datasets/vg/
 # MacOS
 .DS_Store
 
+# 词向量与静态数据
+GLOVE_DIR/
+glove.6B.*
+
+# 编译生成的二进制文件
+maskrcnn_benchmark/_C.*
+
+# 训练输出、日志与权重
+checkpoints/
+output_dir/
+custom_output/
+build_h5/
+train/
+
+# 其他本地批处理脚本（选填，若不希望同步）
+run_train.bat
