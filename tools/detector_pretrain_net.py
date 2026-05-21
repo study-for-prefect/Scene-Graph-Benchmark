@@ -278,6 +278,10 @@ def main():
 
     cfg.merge_from_file(args.config_file)
     cfg.merge_from_list(args.opts)
+    cfg.DATASETS.TRAIN = ("custom_dataset_train",)
+    cfg.DATASETS.VAL = ("custom_dataset_train",)
+    cfg.DATASETS.TEST = ("custom_dataset_train",)
+    cfg.SOLVER.CHECKPOINT_PERIOD = 2500
     cfg.freeze()
 
     output_dir = cfg.OUTPUT_DIR

@@ -1,0 +1,32 @@
+MODEL:
+  META_ARCHITECTURE: "GeneralizedRCNN"
+  # 1. 替换为你训练好的第 5000 轮绝对路径
+  WEIGHT: "D:/school/pythonProject/SSG/Scene-Graph-Benchmark/custom_output/model_0005000.pth"
+  BACKBONE:
+    CONV_BODY: "R-101-FPN"
+  RESNETS:
+    BACKBONE_OUT_CHANNELS: 256
+    STRIDE_IN_1X1: False
+    NUM_GROUPS: 32
+    WIDTH_PER_GROUP: 8
+
+  # 2. 显式开启关系检测模块
+  RELATION_ON: True
+  ATTRIBUTE_ON: False
+  FLIP_AUG: False
+
+  ROI_BOX_HEAD:
+    POOLER_RESOLUTION: 7
+    POOLER_SCALES: (0.25, 0.125, 0.0625, 0.03125)
+    POOLER_SAMPLING_RATIO: 2
+    FEATURE_EXTRACTOR: "FPN2MLPFeatureExtractor"
+    PREDICTOR: "FPNPredictor"
+    # 3. 目标检测分类数：自定义物体 8 类 + 1 背景 = 9
+    NUM_CLASSES: 9
+    MLP_HEAD_DIM: 4096
+
+  ROI_RELATION_HEAD:
+    # 4. 手动补齐缺失的关系分类数参数：自定义关系 8 类 + 1 背景 = 9
+    NUM_PREDICATES: 9
+    # 5. 保持与你日志评估一致的模式 (输入真值框和标签，只预测谓词关系)
+    TEST_ON_PROP_BOX: True
