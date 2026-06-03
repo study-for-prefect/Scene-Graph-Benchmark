@@ -29,14 +29,6 @@ from maskrcnn_benchmark.utils.miscellaneous import mkdir, save_config
 from maskrcnn_benchmark.utils.metric_logger import MetricLogger
 
 
-# See if we can use apex.DistributedDataParallel instead of the torch default,
-# and enable mixed-precision via apex.amp
-try:
-    from apex import amp
-except ImportError:
-    raise ImportError('Use APEX for multi-precision via apex.amp')
-
-
 def train(cfg, local_rank, distributed, logger):
     model = build_detection_model(cfg)
     device = torch.device(cfg.MODEL.DEVICE)
@@ -45,10 +37,9 @@ def train(cfg, local_rank, distributed, logger):
     optimizer = make_optimizer(cfg, model, logger, rl_factor=float(cfg.SOLVER.IMS_PER_BATCH))
     scheduler = make_lr_scheduler(cfg, optimizer)
 
-    # Initialize mixed-precision training
+    # 初始化 PyTorch 原生 AMP 缩放器
     use_mixed_precision = cfg.DTYPE == "float16"
-    amp_opt_level = 'O1' if use_mixed_precision else 'O0'
-    model, optimizer = amp.initialize(model, optimizer, opt_level=amp_opt_level)
+    scaler = torch.cuda.amp.GradScaler(enabled=use_mixed_precision)
 
     if distributed:
         model = torch.nn.parallel.DistributedDataParallel(
@@ -95,21 +86,23 @@ def train(cfg, local_rank, distributed, logger):
     end = time.time()
     for iteration, (images, targets, _) in enumerate(train_data_loader, start_iter):
         model.train()
-        
+
         if any(len(target) < 1 for target in targets):
-            logger.error(f"Iteration={iteration + 1} || Image Ids used for training {_} || targets Length={[len(target) for target in targets]}" )
+            logger.error(
+                f"Iteration={iteration + 1} || Image Ids used for training {_} || targets Length={[len(target) for target in targets]}")
         data_time = time.time() - end
         iteration = iteration + 1
         arguments["iteration"] = iteration
 
-        scheduler.step()
+
 
         images = images.to(device)
         targets = [target.to(device) for target in targets]
 
-        loss_dict = model(images, targets)
-
-        losses = sum(loss for loss in loss_dict.values())
+        # 使用原生 autocast 包裹前向计算
+        with torch.cuda.amp.autocast(enabled=use_mixed_precision):
+            loss_dict = model(images, targets)
+            losses = sum(loss for loss in loss_dict.values())
 
         # reduce losses over all GPUs for logging purposes
         loss_dict_reduced = reduce_loss_dict(loss_dict)
@@ -117,11 +110,13 @@ def train(cfg, local_rank, distributed, logger):
         meters.update(loss=losses_reduced, **loss_dict_reduced)
 
         optimizer.zero_grad()
-        # Note: If mixed precision is not used, this ends up doing nothing
-        # Otherwise apply loss scaling for mixed-precision recipe
-        with amp.scale_loss(losses, optimizer) as scaled_losses:
-            scaled_losses.backward()
-        optimizer.step()
+
+        # 使用 Scaler 进行反向传播与步进
+        scaler.scale(losses).backward()
+        scaler.step(optimizer)
+        scaler.update()
+
+        scheduler.step()
 
         batch_time = time.time() - end
         end = time.time()
@@ -278,10 +273,7 @@ def main():
 
     cfg.merge_from_file(args.config_file)
     cfg.merge_from_list(args.opts)
-    cfg.DATASETS.TRAIN = ("custom_dataset_train",)
-    cfg.DATASETS.VAL = ("custom_dataset_train",)
-    cfg.DATASETS.TEST = ("custom_dataset_train",)
-    cfg.SOLVER.CHECKPOINT_PERIOD = 2500
+
     cfg.freeze()
 
     output_dir = cfg.OUTPUT_DIR

@@ -1,0 +1,100 @@
+{
+  "version": "6.3.0",
+  "flags": {},
+  "shapes": [
+    {
+      "label": "square red",
+      "points": [
+        [
+          357.0,
+          475.0
+        ],
+        [
+          580.0,
+          651.0
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "rectangle",
+      "points": [
+        [
+          980.0,
+          253.0
+        ],
+        [
+          1223.5211267605634,
+          640.0
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "triangle",
+      "points": [
+        [
+          222.11267605633802,
+          400.5633802816901
+        ],
+        [
+          434.7887323943662,
+          703.3802816901408
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "triangle",
+      "points": [
+        [
+          1009.4366197183099,
+          293.5211267605634
+        ],
+        [
+          1284.0845070422536,
+          549.8591549295775
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "workspace",
+      "points": [
+        [
+          0.0,
+          0.0
+        ],
+        [
+          1439.0,
+          1068.0
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    }
+  ],
+  "imagePath": "122.jpg",
+  "imageData": null,
+  "imageHeight": 1080,
+  "imageWidth": 1440
+}

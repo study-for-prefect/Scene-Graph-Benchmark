@@ -1,0 +1,82 @@
+{
+  "version": "6.3.0",
+  "flags": {},
+  "shapes": [
+    {
+      "label": "square blue",
+      "points": [
+        [
+          550.3773584905659,
+          359.622641509434
+        ],
+        [
+          756.0377358490566,
+          544.5283018867925
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "square green",
+      "points": [
+        [
+          539.0566037735848,
+          535.0943396226415
+        ],
+        [
+          744.7169811320755,
+          729.433962264151
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "semi circle",
+      "points": [
+        [
+          631.5094339622642,
+          520.0
+        ],
+        [
+          859.8113207547169,
+          752.0754716981132
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "workspace",
+      "points": [
+        [
+          1.320754716981071,
+          1.1320754716981556
+        ],
+        [
+          1080.0,
+          1439.9996701411796
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    }
+  ],
+  "imagePath": "36.jpg",
+  "imageData": null,
+  "imageHeight": 1440,
+  "imageWidth": 1080
+}

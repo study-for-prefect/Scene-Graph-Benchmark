@@ -1,0 +1,100 @@
+{
+  "version": "6.3.0",
+  "flags": {},
+  "shapes": [
+    {
+      "label": "square red",
+      "points": [
+        [
+          439.0,
+          360.0
+        ],
+        [
+          596.0,
+          522.0
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "rectangle",
+      "points": [
+        [
+          1024.9295774647887,
+          435.77464788732397
+        ],
+        [
+          1255.9154929577467,
+          778.0281690140845
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "triangle",
+      "points": [
+        [
+          358.73239436619724,
+          494.92957746478874
+        ],
+        [
+          627.7464788732394,
+          645.6338028169014
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "square green",
+      "points": [
+        [
+          1065.774647887324,
+          563.9436619718309
+        ],
+        [
+          1298.1690140845071,
+          749.8591549295775
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "workspace",
+      "points": [
+        [
+          0.0,
+          0.0
+        ],
+        [
+          1439.0,
+          1077.0
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    }
+  ],
+  "imagePath": "117.jpg",
+  "imageData": null,
+  "imageHeight": 1080,
+  "imageWidth": 1440
+}

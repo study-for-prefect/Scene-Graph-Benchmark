@@ -1,0 +1,87 @@
+{
+  "image_path": "11.jpg",
+  "objects": [
+    {
+      "object_id": 0,
+      "name": "square red",
+      "box": [
+        623,
+        476,
+        765,
+        616
+      ]
+    },
+    {
+      "object_id": 1,
+      "name": "square green",
+      "box": [
+        591,
+        835,
+        742,
+        970
+      ]
+    },
+    {
+      "object_id": 2,
+      "name": "square blue",
+      "box": [
+        569,
+        701,
+        729,
+        850
+      ]
+    },
+    {
+      "object_id": 3,
+      "name": "semi square",
+      "box": [
+        481,
+        482,
+        627,
+        636
+      ]
+    },
+    {
+      "object_id": 4,
+      "name": "workspace",
+      "box": [
+        1,
+        3,
+        1078,
+        1440
+      ]
+    }
+  ],
+  "relationships": [
+    {
+      "subject_id": 3,
+      "object_id": 0,
+      "predicate": "touching"
+    },
+    {
+      "subject_id": 2,
+      "object_id": 1,
+      "predicate": "touching"
+    },
+    {
+      "subject_id": 0,
+      "object_id": 4,
+      "predicate": "on_surface"
+    },
+    {
+      "subject_id": 1,
+      "object_id": 4,
+      "predicate": "on_surface"
+    },
+    {
+      "subject_id": 3,
+      "object_id": 4,
+      "predicate": "on_surface"
+    },
+    {
+      "subject_id": 2,
+      "object_id": 4,
+      "predicate": "on_surface"
+    }
+  ]
+}

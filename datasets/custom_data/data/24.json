@@ -1,0 +1,100 @@
+{
+  "version": "6.3.0",
+  "flags": {},
+  "shapes": [
+    {
+      "label": "rectangle",
+      "points": [
+        [
+          544.7169811320755,
+          203.01886792452834
+        ],
+        [
+          739.0566037735848,
+          593.5849056603773
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "rectangle",
+      "points": [
+        [
+          365.47169811320754,
+          755.8490566037736
+        ],
+        [
+          739.0566037735848,
+          980.377358490566
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "square blue",
+      "points": [
+        [
+          469.24528301886784,
+          946.4150943396227
+        ],
+        [
+          663.5849056603774,
+          1144.5283018867924
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "semi square",
+      "points": [
+        [
+          369.24528301886784,
+          306.7924528301887
+        ],
+        [
+          573.0188679245282,
+          529.433962264151
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "workspace",
+      "points": [
+        [
+          3.207547169811221,
+          4.905660377358532
+        ],
+        [
+          1080.0,
+          1439.3739279588337
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    }
+  ],
+  "imagePath": "24.jpg",
+  "imageData": null,
+  "imageHeight": 1440,
+  "imageWidth": 1080
+}

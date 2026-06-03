@@ -1,0 +1,30 @@
+{
+  "scene_summary": "manual bridge test",
+  "target_objects": [],
+  "action_plan": [
+    {
+      "step": 1,
+      "action": "move_named_pose",
+      "object_id": null,
+      "reference_object_id": null,
+      "named_pose": "ready",
+      "relative_position": null,
+      "reason": "Move UR5 to a known safe ready pose."
+    },
+    {
+      "step": 2,
+      "action": "open_gripper",
+      "object_id": null,
+      "reference_object_id": null,
+      "named_pose": null,
+      "relative_position": null,
+      "reason": "Open gripper for connectivity test."
+    }
+  ],
+  "safety_checks": [
+    "human operator confirms emergency stop is available",
+    "workspace is clear",
+    "UR teach pendant is in remote control mode"
+  ],
+  "uncertainties": []
+}

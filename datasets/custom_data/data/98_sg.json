@@ -1,0 +1,62 @@
+{
+  "image_path": "98.jpg",
+  "objects": [
+    {
+      "object_id": 0,
+      "name": "square red",
+      "box": [
+        1321,
+        1237,
+        1764,
+        1715
+      ]
+    },
+    {
+      "object_id": 1,
+      "name": "square red",
+      "box": [
+        710,
+        1798,
+        1179,
+        2252
+      ]
+    },
+    {
+      "object_id": 2,
+      "name": "square red",
+      "box": [
+        1255,
+        2340,
+        1706,
+        2809
+      ]
+    },
+    {
+      "object_id": 3,
+      "name": "workspace",
+      "box": [
+        22,
+        3,
+        3072,
+        4093
+      ]
+    }
+  ],
+  "relationships": [
+    {
+      "subject_id": 0,
+      "object_id": 3,
+      "predicate": "on_surface"
+    },
+    {
+      "subject_id": 1,
+      "object_id": 3,
+      "predicate": "on_surface"
+    },
+    {
+      "subject_id": 2,
+      "object_id": 3,
+      "predicate": "on_surface"
+    }
+  ]
+}

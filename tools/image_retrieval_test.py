@@ -1,7 +1,6 @@
 # train/test scene graph based image retrieval
 
 
-
 import argparse
 import os
 import torch
@@ -18,12 +17,7 @@ from maskrcnn_benchmark.utils.logger import setup_logger, debug_print
 from maskrcnn_benchmark.utils.miscellaneous import mkdir, save_config
 from tools.image_retrieval_main import get_dataset, run_test
 import numpy as np
-# See if we can use apex.DistributedDataParallel instead of the torch default,
-# and enable mixed-precision via apex.amp
-try:
-    from apex import amp
-except ImportError:
-    raise ImportError('Use APEX for multi-precision via apex.amp')
+
 
 # Do Not set it above 5000, otherwise you will start to run tests on the validation data...
 GALLERY_SIZE = 150
@@ -40,10 +34,8 @@ def execute_test(cfg, local_rank, distributed, logger, gallery_size):
     optimizer = make_optimizer(cfg, model, logger, rl_factor=float(num_batch))
     scheduler = make_lr_scheduler(cfg, optimizer, logger)
     debug_print(logger, 'end optimizer and shcedule')
-    # Initialize mixed-precision training
-    use_mixed_precision = cfg.DTYPE == "float16"
-    amp_opt_level = 'O1' if use_mixed_precision else 'O0'
-    model, optimizer = amp.initialize(model, optimizer, opt_level=amp_opt_level)
+
+    # 移除原有的 amp.initialize 逻辑
 
     if distributed:
         model = torch.nn.parallel.DistributedDataParallel(
@@ -56,7 +48,8 @@ def execute_test(cfg, local_rank, distributed, logger, gallery_size):
 
     train_ids, test_ids, sg_data = get_dataset()
 
-    test_data_loader = get_loader(cfg, train_ids, test_ids, sg_data=sg_data, test_on=True, val_on=False, num_test=gallery_size, num_val=1000)
+    test_data_loader = get_loader(cfg, train_ids, test_ids, sg_data=sg_data, test_on=True, val_on=False,
+                                  num_test=gallery_size, num_val=1000)
 
     debug_print(logger, 'end dataloader')
     checkpoint_period = cfg.SOLVER.CHECKPOINT_PERIOD
@@ -66,7 +59,10 @@ def execute_test(cfg, local_rank, distributed, logger, gallery_size):
         print("Loading pretrained model:", cfg.MODEL.PRETRAINED_DETECTOR_CKPT)
         model.load_state_dict(checkpoint)
 
-    test_result = run_test(cfg, model, test_data_loader, distributed, logger)
+    # 推理阶段在 run_test 内部或外部加上 autocast 上下文
+    use_mixed_precision = cfg.DTYPE == "float16"
+    with torch.cuda.amp.autocast(enabled=use_mixed_precision):
+        test_result = run_test(cfg, model, test_data_loader, distributed, logger)
 
     cat_data = []
     for item in test_result:

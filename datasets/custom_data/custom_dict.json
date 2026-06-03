@@ -1,0 +1,1 @@
+{"label_to_idx": {"__background__": 0, "circle": 1, "rectangle": 2, "square blue": 3, "square red": 4, "square yellow": 5, "square green": 6, "semi square": 7, "triangle": 8, "semi circle": 9, "workspace": 10}, "predicate_to_idx": {"__background__": 0, "touching": 1, "stacked_on": 2, "on_surface": 3}, "attribute_to_idx": {"__background__": 0}}

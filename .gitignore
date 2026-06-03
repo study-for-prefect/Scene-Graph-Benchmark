@@ -1,5 +1,6 @@
 # compilation and distribution
 __pycache__
+__pycache__/
 _ext
 *.pyc
 *.so
@@ -46,8 +47,16 @@ maskrcnn_benchmark/_C.*
 checkpoints/
 output_dir/
 custom_output/
+custom_output_detector/
+custom_output_sgdet/
+*.pth
 build_h5/
 train/
+
+# 本地依赖 checkout 与生成图文件
+apex/
+frames_*.gv
+frames_*.pdf
 
 # 其他本地批处理脚本（选填，若不希望同步）
 run_train.bat

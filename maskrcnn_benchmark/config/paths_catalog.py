@@ -119,11 +119,11 @@ class DatasetCatalog(object):
             "image_file": "vg/image_data.json",
             "capgraphs_file": "vg/vg_capgraphs_anno.json",
         },
-        "custom_dataset_train": {
-            "img_dir": "D:/label/labelme_img/building_block/data",
-            "dict_file": "D:/school/pythonProject/SSG/Scene-Graph-Benchmark/build_h5/custom_dict.json",
-            "h5_file": "D:/school/pythonProject/SSG/Scene-Graph-Benchmark/build_h5/custom_data.h5",
-            "image_file": "D:/school/pythonProject/SSG/Scene-Graph-Benchmark/build_h5/custom_image_data.json",  # 新增项
+        "VG_custom_dataset": {
+            "img_dir": "/home/wxm/code/Scene-Graph-Benchmark/datasets/custom_data/data",
+            "dict_file": "/home/wxm/code/Scene-Graph-Benchmark/datasets/custom_data/custom_dict.json",
+            "roidb_file": "/home/wxm/code/Scene-Graph-Benchmark/datasets/custom_data/custom_data.h5",
+            "image_file": "/home/wxm/code/Scene-Graph-Benchmark/datasets/custom_data/custom_image_data.json",
         },
     }
 

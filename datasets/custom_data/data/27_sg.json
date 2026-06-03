@@ -1,0 +1,62 @@
+{
+  "image_path": "27.jpg",
+  "objects": [
+    {
+      "object_id": 0,
+      "name": "triangle",
+      "box": [
+        210,
+        314,
+        427,
+        585
+      ]
+    },
+    {
+      "object_id": 1,
+      "name": "rectangle",
+      "box": [
+        837,
+        238,
+        1229,
+        438
+      ]
+    },
+    {
+      "object_id": 2,
+      "name": "semi circle",
+      "box": [
+        589,
+        529,
+        867,
+        794
+      ]
+    },
+    {
+      "object_id": 3,
+      "name": "workspace",
+      "box": [
+        3,
+        1,
+        1437,
+        1079
+      ]
+    }
+  ],
+  "relationships": [
+    {
+      "subject_id": 0,
+      "object_id": 3,
+      "predicate": "on_surface"
+    },
+    {
+      "subject_id": 1,
+      "object_id": 3,
+      "predicate": "on_surface"
+    },
+    {
+      "subject_id": 2,
+      "object_id": 3,
+      "predicate": "on_surface"
+    }
+  ]
+}

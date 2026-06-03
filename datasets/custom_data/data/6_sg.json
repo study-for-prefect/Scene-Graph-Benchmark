@@ -1,0 +1,47 @@
+{
+  "image_path": "6.jpg",
+  "objects": [
+    {
+      "object_id": 0,
+      "name": "square yellow",
+      "box": [
+        450,
+        357,
+        627,
+        560
+      ]
+    },
+    {
+      "object_id": 1,
+      "name": "semi square",
+      "box": [
+        777,
+        391,
+        969,
+        592
+      ]
+    },
+    {
+      "object_id": 2,
+      "name": "workspace",
+      "box": [
+        2,
+        1,
+        1438,
+        1080
+      ]
+    }
+  ],
+  "relationships": [
+    {
+      "subject_id": 0,
+      "object_id": 2,
+      "predicate": "on_surface"
+    },
+    {
+      "subject_id": 1,
+      "object_id": 2,
+      "predicate": "on_surface"
+    }
+  ]
+}

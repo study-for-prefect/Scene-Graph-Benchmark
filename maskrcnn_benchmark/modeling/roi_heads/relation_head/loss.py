@@ -26,6 +26,8 @@ class RelationLossComputation(object):
         attribute_bgfg_ratio,
         use_label_smoothing,
         predicate_proportion,
+        use_relation_class_weight,
+        relation_class_weights,
     ):
         """
         Arguments:
@@ -38,12 +40,19 @@ class RelationLossComputation(object):
         self.attribute_sampling = attribute_sampling
         self.attribute_bgfg_ratio = attribute_bgfg_ratio
         self.use_label_smoothing = use_label_smoothing
+        self.use_relation_class_weight = use_relation_class_weight
         self.pred_weight = (1.0 / torch.FloatTensor([0.5,] + predicate_proportion)).cuda()
+        self.relation_class_weights = None
+        if self.use_relation_class_weight:
+            self.relation_class_weights = torch.FloatTensor(relation_class_weights)
+            if torch.cuda.is_available():
+                self.relation_class_weights = self.relation_class_weights.cuda()
 
         if self.use_label_smoothing:
             self.criterion_loss = Label_Smoothing_Regression(e=0.01)
         else:
             self.criterion_loss = nn.CrossEntropyLoss()
+        self.relation_criterion_loss = nn.CrossEntropyLoss(weight=self.relation_class_weights)
 
 
     def __call__(self, proposals, rel_labels, relation_logits, refine_logits):
@@ -75,7 +84,10 @@ class RelationLossComputation(object):
         fg_labels = cat([proposal.get_field("labels") for proposal in proposals], dim=0)
         rel_labels = cat(rel_labels, dim=0)
 
-        loss_relation = self.criterion_loss(relation_logits, rel_labels.long())
+        if self.use_relation_class_weight:
+            loss_relation = self.relation_criterion_loss(relation_logits, rel_labels.long())
+        else:
+            loss_relation = self.criterion_loss(relation_logits, rel_labels.long())
         loss_refine_obj = self.criterion_loss(refine_obj_logits, fg_labels.long())
 
         # The following code is used to calcaulate sampled attribute loss
@@ -172,6 +184,8 @@ def make_roi_relation_loss_evaluator(cfg):
         cfg.MODEL.ROI_ATTRIBUTE_HEAD.ATTRIBUTE_BGFG_RATIO,
         cfg.MODEL.ROI_RELATION_HEAD.LABEL_SMOOTHING_LOSS,
         cfg.MODEL.ROI_RELATION_HEAD.REL_PROP,
+        cfg.MODEL.ROI_RELATION_HEAD.USE_RELATION_CLASS_WEIGHT,
+        cfg.MODEL.ROI_RELATION_HEAD.RELATION_CLASS_WEIGHTS,
     )
 
     return loss_evaluator

@@ -218,6 +218,7 @@ class MotifPredictor(nn.Module):
         statistics = get_dataset_statistics(config)
         obj_classes, rel_classes, att_classes = statistics['obj_classes'], statistics['rel_classes'], statistics['att_classes']
         assert self.num_obj_cls==len(obj_classes)
+        print("DEBUG - Length of att_classes:", len(att_classes))
         assert self.num_att_cls==len(att_classes)
         assert self.num_rel_cls==len(rel_classes)
         # init contextual lstm encoding

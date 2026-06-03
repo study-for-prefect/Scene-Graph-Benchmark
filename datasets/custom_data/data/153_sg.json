@@ -1,0 +1,97 @@
+{
+  "image_path": "153.jpg",
+  "objects": [
+    {
+      "object_id": 0,
+      "name": "rectangle",
+      "box": [
+        405,
+        194,
+        649,
+        523
+      ]
+    },
+    {
+      "object_id": 1,
+      "name": "rectangle",
+      "box": [
+        866,
+        654,
+        1197,
+        868
+      ]
+    },
+    {
+      "object_id": 2,
+      "name": "square red",
+      "box": [
+        343,
+        714,
+        488,
+        877
+      ]
+    },
+    {
+      "object_id": 3,
+      "name": "square green",
+      "box": [
+        1009,
+        703,
+        1190,
+        878
+      ]
+    },
+    {
+      "object_id": 4,
+      "name": "triangle",
+      "box": [
+        467,
+        660,
+        628,
+        891
+      ]
+    },
+    {
+      "object_id": 5,
+      "name": "workspace",
+      "box": [
+        0,
+        0,
+        1439,
+        1079
+      ]
+    }
+  ],
+  "relationships": [
+    {
+      "subject_id": 3,
+      "object_id": 1,
+      "predicate": "stacked_on"
+    },
+    {
+      "subject_id": 0,
+      "object_id": 5,
+      "predicate": "on_surface"
+    },
+    {
+      "subject_id": 1,
+      "object_id": 5,
+      "predicate": "on_surface"
+    },
+    {
+      "subject_id": 2,
+      "object_id": 5,
+      "predicate": "on_surface"
+    },
+    {
+      "subject_id": 2,
+      "object_id": 4,
+      "predicate": "touching"
+    },
+    {
+      "subject_id": 4,
+      "object_id": 5,
+      "predicate": "on_surface"
+    }
+  ]
+}

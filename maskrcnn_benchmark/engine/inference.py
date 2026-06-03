@@ -143,6 +143,11 @@ def inference(
     )
 
     if cfg.TEST.CUSTUM_EVAL:
+        for image_id, prediction in enumerate(predictions):
+            img_info = dataset.get_img_info(image_id)
+            image_width = img_info["width"]
+            image_height = img_info["height"]
+            predictions[image_id] = prediction.resize((image_width, image_height))
         detected_sgg = custom_sgg_post_precessing(predictions)
         with open(os.path.join(cfg.DETECTED_SGG_DIR, 'custom_prediction.json'), 'w') as outfile:  
             json.dump(detected_sgg, outfile)

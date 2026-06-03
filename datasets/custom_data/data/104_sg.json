@@ -1,0 +1,52 @@
+{
+  "image_path": "104.jpg",
+  "objects": [
+    {
+      "object_id": 0,
+      "name": "rectangle",
+      "box": [
+        149,
+        376,
+        527,
+        655
+      ]
+    },
+    {
+      "object_id": 1,
+      "name": "rectangle",
+      "box": [
+        362,
+        206,
+        685,
+        542
+      ]
+    },
+    {
+      "object_id": 2,
+      "name": "workspace",
+      "box": [
+        0,
+        0,
+        1119,
+        1493
+      ]
+    }
+  ],
+  "relationships": [
+    {
+      "subject_id": 0,
+      "object_id": 1,
+      "predicate": "touching"
+    },
+    {
+      "subject_id": 0,
+      "object_id": 2,
+      "predicate": "on_surface"
+    },
+    {
+      "subject_id": 1,
+      "object_id": 2,
+      "predicate": "on_surface"
+    }
+  ]
+}

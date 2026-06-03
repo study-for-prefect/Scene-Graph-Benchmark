@@ -1,0 +1,47 @@
+{
+  "image_path": "103.jpg",
+  "objects": [
+    {
+      "object_id": 0,
+      "name": "rectangle",
+      "box": [
+        210,
+        1085,
+        1731,
+        2093
+      ]
+    },
+    {
+      "object_id": 1,
+      "name": "rectangle",
+      "box": [
+        1618,
+        1659,
+        2654,
+        2933
+      ]
+    },
+    {
+      "object_id": 2,
+      "name": "workspace",
+      "box": [
+        5,
+        9,
+        3072,
+        4081
+      ]
+    }
+  ],
+  "relationships": [
+    {
+      "subject_id": 0,
+      "object_id": 2,
+      "predicate": "on_surface"
+    },
+    {
+      "subject_id": 1,
+      "object_id": 2,
+      "predicate": "on_surface"
+    }
+  ]
+}

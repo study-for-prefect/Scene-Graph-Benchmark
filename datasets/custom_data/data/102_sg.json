@@ -1,0 +1,47 @@
+{
+  "image_path": "102.jpg",
+  "objects": [
+    {
+      "object_id": 0,
+      "name": "square blue",
+      "box": [
+        583,
+        2311,
+        1342,
+        3189
+      ]
+    },
+    {
+      "object_id": 1,
+      "name": "square blue",
+      "box": [
+        1509,
+        2034,
+        2312,
+        2901
+      ]
+    },
+    {
+      "object_id": 2,
+      "name": "workspace",
+      "box": [
+        16,
+        9,
+        3068,
+        4096
+      ]
+    }
+  ],
+  "relationships": [
+    {
+      "subject_id": 0,
+      "object_id": 2,
+      "predicate": "on_surface"
+    },
+    {
+      "subject_id": 1,
+      "object_id": 2,
+      "predicate": "on_surface"
+    }
+  ]
+}

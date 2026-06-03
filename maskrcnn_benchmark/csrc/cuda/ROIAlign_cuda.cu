@@ -1,10 +1,16 @@
 // Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved.
 #include <ATen/ATen.h>
 #include <ATen/cuda/CUDAContext.h>
+#include <ATen/cuda/Atomic.cuh>
+#include <ATen/cuda/Exceptions.h>
 
-#include <THC/THC.h>
-#include <THC/THCAtomics.cuh>
-#include <THC/THCDeviceUtils.cuh>
+#ifndef THCCeilDiv
+#define THCCeilDiv(a, b) (((a) + (b) - 1) / (b))
+#endif
+
+#ifndef THCudaCheck
+#define THCudaCheck(err) AT_CUDA_CHECK(err)
+#endif
 
 // TODO make it in a common file
 #define CUDA_1D_KERNEL_LOOP(i, n)                            \

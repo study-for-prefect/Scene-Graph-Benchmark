@@ -36,12 +36,7 @@ from maskrcnn_benchmark.utils.logger import setup_logger, debug_print
 from maskrcnn_benchmark.utils.miscellaneous import mkdir, save_config
 from maskrcnn_benchmark.utils.metric_logger import MetricLogger
 
-# See if we can use apex.DistributedDataParallel instead of the torch default,
-# and enable mixed-precision via apex.amp
-try:
-    from apex import amp
-except ImportError:
-    raise ImportError('Use APEX for multi-precision via apex.amp')
+
 
 sg_model_name = 'motif'
 sg_fusion_name = 'rubi'
@@ -82,6 +77,7 @@ def get_dataset():
     print("Number of Testing Samples", len(test_ids))
     return train_ids, test_ids, sg_data
 
+
 def train(cfg, local_rank, distributed, logger):
     model = SGEncode()
     device = torch.device(cfg.MODEL.DEVICE)
@@ -92,10 +88,10 @@ def train(cfg, local_rank, distributed, logger):
     optimizer = make_optimizer(cfg, model, logger, rl_factor=float(num_batch))
     scheduler = make_lr_scheduler(cfg, optimizer, logger)
     debug_print(logger, 'end optimizer and shcedule')
-    # Initialize mixed-precision training
+
+    # 初始化 PyTorch 原生 AMP 缩放器
     use_mixed_precision = cfg.DTYPE == "float16"
-    amp_opt_level = 'O1' if use_mixed_precision else 'O0'
-    model, optimizer = amp.initialize(model, optimizer, opt_level=amp_opt_level)
+    scaler = torch.cuda.amp.GradScaler(enabled=use_mixed_precision)
 
     if distributed:
         model = torch.nn.parallel.DistributedDataParallel(
@@ -108,9 +104,12 @@ def train(cfg, local_rank, distributed, logger):
 
     train_ids, test_ids, sg_data = get_dataset()
 
-    train_data_loader = get_loader(cfg, train_ids, test_ids, sg_data=sg_data, test_on=False, val_on=False, num_test=5000, num_val=1000)
-    val_data_loader = get_loader(cfg, train_ids, test_ids, sg_data=sg_data, test_on=False, val_on=True, num_test=5000, num_val=1000)
-    test_data_loader = get_loader(cfg, train_ids, test_ids, sg_data=sg_data, test_on=True, val_on=False, num_test=5000, num_val=1000)
+    train_data_loader = get_loader(cfg, train_ids, test_ids, sg_data=sg_data, test_on=False, val_on=False,
+                                   num_test=5000, num_val=1000)
+    val_data_loader = get_loader(cfg, train_ids, test_ids, sg_data=sg_data, test_on=False, val_on=True, num_test=5000,
+                                 num_val=1000)
+    test_data_loader = get_loader(cfg, train_ids, test_ids, sg_data=sg_data, test_on=True, val_on=False, num_test=5000,
+                                  num_val=1000)
 
     debug_print(logger, 'end dataloader')
     checkpoint_period = cfg.SOLVER.CHECKPOINT_PERIOD
@@ -177,23 +176,30 @@ def train(cfg, local_rank, distributed, logger):
             bad_sample_list.clear()
 
             if len(fg_imgs) > 0:
-                loss_list = model(fg_imgs, fg_txts, bg_imgs, bg_txts)
-
-                losses = sum(loss_list) / (len(loss_list) + 1e-9)
-                epoch_loss.append(float(losses))
-                #print("batch loss; ", float(losses))
                 optimizer.zero_grad()
-                # Note: If mixed precision is not used, this ends up doing nothing
-                # Otherwise apply loss scaling for mixed-precision recipe
-                with amp.scale_loss(losses, optimizer) as scaled_losses:
-                    scaled_losses.backward()
+
+                # 使用原生 autocast 包裹前向计算
+                with torch.cuda.amp.autocast(enabled=use_mixed_precision):
+                    loss_list = model(fg_imgs, fg_txts, bg_imgs, bg_txts)
+                    losses = sum(loss_list) / (len(loss_list) + 1e-9)
+
+                epoch_loss.append(float(losses))
+
+                # 使用 Scaler 进行反向传播
+                scaler.scale(losses).backward()
 
                 # add clip_grad_norm from MOTIFS, used for debug
-                verbose = (iteration % cfg.SOLVER.PRINT_GRAD_FREQ) == 0 or print_first_grad # print grad or not
+                verbose = (iteration % cfg.SOLVER.PRINT_GRAD_FREQ) == 0 or print_first_grad  # print grad or not
                 print_first_grad = False
-                clip_grad_norm([(n, p) for n, p in model.named_parameters() if p.requires_grad], max_norm=cfg.SOLVER.GRAD_NORM_CLIP, logger=logger, verbose=verbose, clip=True)
 
-                optimizer.step()
+                # 在 unscale_ 之后执行梯度裁剪
+                scaler.unscale_(optimizer)
+                clip_grad_norm([(n, p) for n, p in model.named_parameters() if p.requires_grad],
+                               max_norm=cfg.SOLVER.GRAD_NORM_CLIP, logger=logger, verbose=verbose, clip=True)
+
+                scaler.step(optimizer)
+                scaler.update()
+
                 # scheduler should be called after optimizer.step() in pytorch>=1.1.0
                 assert cfg.SOLVER.SCHEDULE.TYPE != "WarmupReduceLROnPlateau"
                 scheduler.step()
@@ -201,31 +207,30 @@ def train(cfg, local_rank, distributed, logger):
             batch_time = time.time() - end
             end = time.time()
 
-        logger.info("epoch: {epoch} loss: {loss:.6f} lr: {lr:.6f}".format(epoch=epoch, loss=float(sum(epoch_loss) / len(epoch_loss)), lr=optimizer.param_groups[-1]["lr"]))
-        
+        logger.info("epoch: {epoch} loss: {loss:.6f} lr: {lr:.6f}".format(epoch=epoch,
+                                                                          loss=float(sum(epoch_loss) / len(epoch_loss)),
+                                                                          lr=optimizer.param_groups[-1]["lr"]))
+
         if epoch % checkpoint_period == 0:
             save_path = os.path.join(cfg.OUTPUT_DIR, "model_{}.pytorch".format(str(epoch)))
             logger.info(f"Saving model {save_path}")
             torch.save(model.state_dict(), save_path)
         if epoch == max_iter:
-            save_path =  os.path.join(cfg.OUTPUT_DIR, "model_final.pytorch")
+            save_path = os.path.join(cfg.OUTPUT_DIR, "model_final.pytorch")
             logger.info(f"Saving model {save_path}")
             torch.save(model.state_dict(), save_path)
 
-        val_result = None # used for scheduler updating
+        val_result = None  # used for scheduler updating
         if cfg.SOLVER.TO_VAL and epoch % cfg.SOLVER.VAL_PERIOD == 0:
             logger.info("Start testing")
             test_result = run_test(cfg, model, test_data_loader, distributed, logger)
             test_similarity = evaluator(logger, test_result)
-            torch.save({'result' : test_result, 'similarity' : test_similarity}, output_path % ('test', epoch))
+            torch.save({'result': test_result, 'similarity': test_similarity}, output_path % ('test', epoch))
             logger.info("Start validating")
             val_result = run_test(cfg, model, val_data_loader, distributed, logger)
             val_similarity = evaluator(logger, val_result)
-            torch.save({'result' : val_result, 'similarity' : val_similarity}, output_path % ('val', epoch))
-        
+            torch.save({'result': val_result, 'similarity': val_similarity}, output_path % ('val', epoch))
 
-
-    
     total_training_time = time.time() - start_training_time
     total_time_str = str(datetime.timedelta(seconds=total_training_time))
     logger.info(

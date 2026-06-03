@@ -33,38 +33,34 @@ from maskrcnn_benchmark.utils.metric_logger import MetricLogger
 
 
 # See if we can use apex.DistributedDataParallel instead of the torch default,
-# and enable mixed-precision via apex.amp
-try:
-    from apex import amp
-except ImportError:
-    raise ImportError('Use APEX for multi-precision via apex.amp')
 
 
 def train(cfg, local_rank, distributed, logger):
     debug_print(logger, 'prepare training')
-    model = build_detection_model(cfg) 
+    model = build_detection_model(cfg)
     debug_print(logger, 'end model construction')
 
     # modules that should be always set in eval mode
     # their eval() method should be called after model.train() is called
     eval_modules = (model.rpn, model.backbone, model.roi_heads.box,)
- 
+
     fix_eval_modules(eval_modules)
 
     # NOTE, we slow down the LR of the layers start with the names in slow_heads
     if cfg.MODEL.ROI_RELATION_HEAD.PREDICTOR == "IMPPredictor":
         slow_heads = ["roi_heads.relation.box_feature_extractor",
-                      "roi_heads.relation.union_feature_extractor.feature_extractor",]
+                      "roi_heads.relation.union_feature_extractor.feature_extractor", ]
     else:
         slow_heads = []
 
     # load pretrain layers to new layers
-    load_mapping = {"roi_heads.relation.box_feature_extractor" : "roi_heads.box.feature_extractor",
-                    "roi_heads.relation.union_feature_extractor.feature_extractor" : "roi_heads.box.feature_extractor"}
-    
+    load_mapping = {"roi_heads.relation.box_feature_extractor": "roi_heads.box.feature_extractor",
+                    "roi_heads.relation.union_feature_extractor.feature_extractor": "roi_heads.box.feature_extractor"}
+
     if cfg.MODEL.ATTRIBUTE_ON:
         load_mapping["roi_heads.relation.att_feature_extractor"] = "roi_heads.attribute.feature_extractor"
-        load_mapping["roi_heads.relation.union_feature_extractor.att_feature_extractor"] = "roi_heads.attribute.feature_extractor"
+        load_mapping[
+            "roi_heads.relation.union_feature_extractor.att_feature_extractor"] = "roi_heads.attribute.feature_extractor"
 
     device = torch.device(cfg.MODEL.DEVICE)
     model.to(device)
@@ -74,10 +70,10 @@ def train(cfg, local_rank, distributed, logger):
     optimizer = make_optimizer(cfg, model, logger, slow_heads=slow_heads, slow_ratio=10.0, rl_factor=float(num_batch))
     scheduler = make_lr_scheduler(cfg, optimizer, logger)
     debug_print(logger, 'end optimizer and shcedule')
-    # Initialize mixed-precision training
+
+    # 初始化 PyTorch 原生 AMP 缩放器
     use_mixed_precision = cfg.DTYPE == "float16"
-    amp_opt_level = 'O1' if use_mixed_precision else 'O0'
-    model, optimizer = amp.initialize(model, optimizer, opt_level=amp_opt_level)
+    scaler = torch.cuda.amp.GradScaler(enabled=use_mixed_precision)
 
     if distributed:
         model = torch.nn.parallel.DistributedDataParallel(
@@ -98,8 +94,8 @@ def train(cfg, local_rank, distributed, logger):
     )
     # if there is certain checkpoint in output_dir, load it, else load pretrained detector
     if checkpointer.has_checkpoint():
-        extra_checkpoint_data = checkpointer.load(cfg.MODEL.PRETRAINED_DETECTOR_CKPT, 
-                                       update_schedule=cfg.SOLVER.UPDATE_SCHEDULE_DURING_LOAD)
+        extra_checkpoint_data = checkpointer.load(cfg.MODEL.PRETRAINED_DETECTOR_CKPT,
+                                                  update_schedule=cfg.SOLVER.UPDATE_SCHEDULE_DURING_LOAD)
         arguments.update(extra_checkpoint_data)
     else:
         # load_mapping is only used when we init current model from detection model.
@@ -133,7 +129,8 @@ def train(cfg, local_rank, distributed, logger):
     print_first_grad = True
     for iteration, (images, targets, _) in enumerate(train_data_loader, start_iter):
         if any(len(target) < 1 for target in targets):
-            logger.error(f"Iteration={iteration + 1} || Image Ids used for training {_} || targets Length={[len(target) for target in targets]}" )
+            logger.error(
+                f"Iteration={iteration + 1} || Image Ids used for training {_} || targets Length={[len(target) for target in targets]}")
         data_time = time.time() - end
         iteration = iteration + 1
         arguments["iteration"] = iteration
@@ -144,9 +141,10 @@ def train(cfg, local_rank, distributed, logger):
         images = images.to(device)
         targets = [target.to(device) for target in targets]
 
-        loss_dict = model(images, targets)
-
-        losses = sum(loss for loss in loss_dict.values())
+        # 使用原生 autocast 包裹前向计算
+        with torch.cuda.amp.autocast(enabled=use_mixed_precision):
+            loss_dict = model(images, targets)
+            losses = sum(loss for loss in loss_dict.values())
 
         # reduce losses over all GPUs for logging purposes
         loss_dict_reduced = reduce_loss_dict(loss_dict)
@@ -154,17 +152,21 @@ def train(cfg, local_rank, distributed, logger):
         meters.update(loss=losses_reduced, **loss_dict_reduced)
 
         optimizer.zero_grad()
-        # Note: If mixed precision is not used, this ends up doing nothing
-        # Otherwise apply loss scaling for mixed-precision recipe
-        with amp.scale_loss(losses, optimizer) as scaled_losses:
-            scaled_losses.backward()
-        
-        # add clip_grad_norm from MOTIFS, tracking gradient, used for debug
-        verbose = (iteration % cfg.SOLVER.PRINT_GRAD_FREQ) == 0 or print_first_grad # print grad or not
-        print_first_grad = False
-        clip_grad_norm([(n, p) for n, p in model.named_parameters() if p.requires_grad], max_norm=cfg.SOLVER.GRAD_NORM_CLIP, logger=logger, verbose=verbose, clip=True)
 
-        optimizer.step()
+        # 使用 Scaler 反向传播
+        scaler.scale(losses).backward()
+
+        # add clip_grad_norm from MOTIFS, tracking gradient, used for debug
+        verbose = (iteration % cfg.SOLVER.PRINT_GRAD_FREQ) == 0 or print_first_grad  # print grad or not
+        print_first_grad = False
+
+        # 先 unscale_ 梯度，再执行裁剪
+        scaler.unscale_(optimizer)
+        clip_grad_norm([(n, p) for n, p in model.named_parameters() if p.requires_grad],
+                       max_norm=cfg.SOLVER.GRAD_NORM_CLIP, logger=logger, verbose=verbose, clip=True)
+
+        scaler.step(optimizer)
+        scaler.update()
 
         batch_time = time.time() - end
         end = time.time()
@@ -196,22 +198,6 @@ def train(cfg, local_rank, distributed, logger):
             checkpointer.save("model_{:07d}".format(iteration), **arguments)
         if iteration == max_iter:
             checkpointer.save("model_final", **arguments)
-
-        val_result = None # used for scheduler updating
-        if cfg.SOLVER.TO_VAL and iteration % cfg.SOLVER.VAL_PERIOD == 0:
-            logger.info("Start validating")
-            val_result = run_val(cfg, model, val_data_loaders, distributed, logger)
-            logger.info("Validation Result: %.4f" % val_result)
- 
-        # scheduler should be called after optimizer.step() in pytorch>=1.1.0
-        # https://pytorch.org/docs/stable/optim.html#how-to-adjust-learning-rate
-        if cfg.SOLVER.SCHEDULE.TYPE == "WarmupReduceLROnPlateau":
-            scheduler.step(val_result, epoch=iteration)
-            if scheduler.stage_count >= cfg.SOLVER.SCHEDULE.MAX_DECAY_STEP:
-                logger.info("Trigger MAX_DECAY_STEP at iteration {}.".format(iteration))
-                break
-        else:
-            scheduler.step()
 
     total_training_time = time.time() - start_training_time
     total_time_str = str(datetime.timedelta(seconds=total_training_time))
@@ -345,12 +331,6 @@ def main():
 
     cfg.merge_from_file(args.config_file)
     cfg.merge_from_list(args.opts)
-    # 强制覆盖配置系统，直接注入自定义数据集
-    cfg.DATASETS.TRAIN = ("custom_dataset_train",)
-    cfg.DATASETS.VAL = ("custom_dataset_train",)
-    cfg.DATASETS.TEST = ("custom_dataset_train",)
-    # 显式设定权重保存周期（此处以每 2500 轮输出一次为例）
-    cfg.SOLVER.CHECKPOINT_PERIOD = 2500
     cfg.freeze()
 
     output_dir = cfg.OUTPUT_DIR
