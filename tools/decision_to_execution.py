@@ -22,6 +22,18 @@ def parse_args():
     parser.add_argument("--place-offset-m", type=float, default=0.08)
     parser.add_argument("--approach-height-m", type=float, default=0.08)
     parser.add_argument(
+        "--pick-target-lift-m",
+        type=float,
+        default=0.0,
+        help="Extra z lift for pick target points in base frame.",
+    )
+    parser.add_argument(
+        "--place-target-lift-m",
+        type=float,
+        default=0.0,
+        help="Extra z lift for place_relative target points in base frame.",
+    )
+    parser.add_argument(
         "--left-right-axis",
         choices=("x", "y"),
         default="y",
@@ -30,8 +42,20 @@ def parse_args():
     parser.add_argument(
         "--left-direction-sign",
         choices=("positive", "negative"),
-        default="negative",
+        default="positive",
         help="Direction for left_of along --left-right-axis. right_of uses the opposite direction.",
+    )
+    parser.add_argument(
+        "--front-back-axis",
+        choices=("x", "y"),
+        default="x",
+        help="Base-frame axis used for in_front_of/behind placement.",
+    )
+    parser.add_argument(
+        "--front-direction-sign",
+        choices=("positive", "negative"),
+        default="positive",
+        help="Direction for in_front_of along --front-back-axis. behind uses the opposite direction.",
     )
     return parser.parse_args()
 
@@ -76,7 +100,8 @@ def point_for_object(objects, object_id):
     obj = objects.get(int(object_id))
     if not obj:
         return None
-    point = obj.get("center_3d_base_m") or obj.get("center_3d_m")
+    geometry_point = obj.get("geometry_center_m") if obj.get("geometry_frame") == "base_link" else None
+    point = geometry_point or obj.get("center_3d_base_m") or obj.get("center_3d_m")
     if not point or len(point) < 3:
         return None
     return [float(point[0]), float(point[1]), float(point[2])]
@@ -87,20 +112,50 @@ def object_label(objects, object_id):
     return obj.get("label") if obj else None
 
 
-def target_for_relative(reference_point, relative_position, offset_m, left_right_axis="x", left_direction_sign="positive"):
+def object_geometry(objects, object_id):
+    obj = objects.get(int(object_id)) if object_id is not None else None
+    if not obj:
+        return {}
+    return {
+        "object_dimensions_m": obj.get("dimensions_m"),
+        "target_yaw_deg": obj.get("table_yaw_deg") if obj.get("table_yaw_valid") else None,
+        "target_yaw_valid": bool(obj.get("table_yaw_valid")),
+        "yaw_frame": obj.get("geometry_frame"),
+    }
+
+
+def axis_index(axis):
+    return 0 if axis == "x" else 1
+
+
+def direction_sign(sign):
+    return 1.0 if sign == "positive" else -1.0
+
+
+def target_for_relative(
+    reference_point,
+    relative_position,
+    offset_m,
+    left_right_axis="y",
+    left_direction_sign="positive",
+    front_back_axis="x",
+    front_direction_sign="positive",
+):
     if reference_point is None:
         return None
     target = list(reference_point)
-    axis_index = 0 if left_right_axis == "x" else 1
-    left_sign = 1.0 if left_direction_sign == "positive" else -1.0
+    left_axis_index = axis_index(left_right_axis)
+    left_sign = direction_sign(left_direction_sign)
+    front_axis_index = axis_index(front_back_axis)
+    front_sign = direction_sign(front_direction_sign)
     if relative_position == "left_of":
-        target[axis_index] += left_sign * offset_m
+        target[left_axis_index] += left_sign * offset_m
     elif relative_position == "right_of":
-        target[axis_index] -= left_sign * offset_m
+        target[left_axis_index] -= left_sign * offset_m
     elif relative_position == "in_front_of":
-        target[2] -= offset_m
+        target[front_axis_index] += front_sign * offset_m
     elif relative_position == "behind":
-        target[2] += offset_m
+        target[front_axis_index] -= front_sign * offset_m
     elif relative_position in ("near", "on_surface", "center_of_workspace", None):
         pass
     else:
@@ -134,6 +189,7 @@ def compile_step(step, objects, args):
         "reason": step.get("reason", ""),
         "status": "planned",
     }
+    compiled.update(object_geometry(objects, object_id))
 
     if action in ("ask_user", "stop"):
         compiled["status"] = "requires_no_motion"
@@ -154,8 +210,10 @@ def compile_step(step, objects, args):
             reference_point,
             relative_position,
             args.place_offset_m,
-        getattr(args, "left_right_axis", "y"),
-        getattr(args, "left_direction_sign", "negative"),
+            getattr(args, "left_right_axis", "y"),
+            getattr(args, "left_direction_sign", "positive"),
+            getattr(args, "front_back_axis", "x"),
+            getattr(args, "front_direction_sign", "positive"),
         )
     else:
         compiled["status"] = "unsupported_action"
@@ -166,6 +224,10 @@ def compile_step(step, objects, args):
         return compiled
 
     coordinate_frame = private_state_frame(objects, object_id, reference_id, workspace)
+    if action == "pick" and coordinate_frame == "base_frame":
+        target[2] += float(getattr(args, "pick_target_lift_m", 0.0))
+    if action == "place_relative" and coordinate_frame == "base_frame":
+        target[2] += float(getattr(args, "place_target_lift_m", 0.0))
     if coordinate_frame == "base_frame":
         approach = [target[0], target[1], target[2] + args.approach_height_m]
     else:

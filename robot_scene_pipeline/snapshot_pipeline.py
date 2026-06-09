@@ -10,7 +10,8 @@ from .detector_runtime import DetectorModel, add_detector_args
 from .io_utils import parse_json_or_embedded, project_path, write_json
 from .llm_scene_reasoner import add_llm_args, build_llm_input, build_prompt, call_ollama, normalize_decision_text
 from .realsense_capture import add_realsense_args, capture_rgbd
-from .tf_transform import add_tf_args, attach_base_coordinates, transform_summary
+from .tabletop_geometry import add_tabletop_args, attach_tabletop_geometry
+from .tf_transform import add_tf_args, attach_base_coordinates, resolved_transform_matrix, transform_summary
 
 
 DEFAULT_OUT = "/tmp/robot_scene_pipeline"
@@ -30,6 +31,8 @@ def parse_args():
     parser.add_argument("--compile-execution-plan", action="store_true")
     parser.add_argument("--place-offset-m", type=float, default=0.08)
     parser.add_argument("--approach-height-m", type=float, default=0.08)
+    parser.add_argument("--pick-target-lift-m", type=float, default=0.0)
+    parser.add_argument("--place-target-lift-m", type=float, default=0.0)
     parser.add_argument(
         "--left-right-axis",
         choices=("x", "y"),
@@ -39,14 +42,27 @@ def parse_args():
     parser.add_argument(
         "--left-direction-sign",
         choices=("positive", "negative"),
-        default="negative",
+        default="positive",
         help="Direction for left_of along --left-right-axis. right_of uses the opposite direction.",
+    )
+    parser.add_argument(
+        "--front-back-axis",
+        choices=("x", "y"),
+        default="x",
+        help="Base-frame axis used for in_front_of/behind placement.",
+    )
+    parser.add_argument(
+        "--front-direction-sign",
+        choices=("positive", "negative"),
+        default="positive",
+        help="Direction for in_front_of along --front-back-axis. behind uses the opposite direction.",
     )
     parser.add_argument("--show", action="store_true")
     add_realsense_args(parser)
     add_detector_args(parser)
     add_depth_args(parser)
     add_tf_args(parser)
+    add_tabletop_args(parser)
     add_llm_args(parser)
     return parser.parse_args()
 
@@ -93,8 +109,12 @@ def compile_execution_plan(args, decision_text, private_state, output_path):
     plan_args = SimpleNamespace(
         place_offset_m=args.place_offset_m,
         approach_height_m=args.approach_height_m,
+        pick_target_lift_m=args.pick_target_lift_m,
+        place_target_lift_m=args.place_target_lift_m,
         left_right_axis=args.left_right_axis,
         left_direction_sign=args.left_direction_sign,
+        front_back_axis=args.front_back_axis,
+        front_direction_sign=args.front_direction_sign,
     )
     plan = compile_plan(decision, private_state, plan_args)
     write_json(output_path, plan)
@@ -115,6 +135,7 @@ def main():
     llm_input_path = os.path.join(args.output_dir, "llm_input.json")
     private_state_path = os.path.join(args.output_dir, "private_scene_state.json")
     tf_status_path = os.path.join(args.output_dir, "tf_status.json")
+    tabletop_path = os.path.join(args.output_dir, "tabletop_geometry.json")
     raw_decision_path = os.path.join(args.output_dir, "llm_scene_graph_decision_raw.json")
     decision_path = os.path.join(args.output_dir, "llm_scene_graph_decision.json")
     execution_plan_path = os.path.join(args.output_dir, "robot_execution_plan.json")
@@ -140,6 +161,7 @@ def main():
         "camera_frame": args.camera_frame,
         "status": "not_requested",
     }
+    transform_matrix = None
     if args.use_tf:
         detections, transform = attach_base_coordinates(
             detections,
@@ -149,8 +171,34 @@ def main():
             getattr(args, "tf_json", ""),
             getattr(args, "tf_point_mode", "optical-to-camera-link")
         )
+        transform_matrix = resolved_transform_matrix(transform)
         tf_payload.update({"status": "ok", "transform": transform_summary(transform)})
     write_json(tf_status_path, tf_payload)
+
+    table_plane = None
+    tabletop_payload = {"enabled": bool(args.estimate_tabletop), "status": "not_requested"}
+    if args.estimate_tabletop:
+        try:
+            detections, table_plane = attach_tabletop_geometry(
+                detections,
+                depth_frame,
+                intrinsics,
+                args,
+                transform_matrix=transform_matrix,
+            )
+            valid_objects = sum(bool(det.get("pointcloud_geometry_valid")) for det in detections)
+            tabletop_payload.update(
+                {
+                    "status": "ok",
+                    "table_plane": table_plane,
+                    "valid_object_count": valid_objects,
+                }
+            )
+        except Exception as exc:
+            tabletop_payload.update({"status": "error", "error": str(exc)})
+            write_json(tabletop_path, tabletop_payload)
+            raise
+    write_json(tabletop_path, tabletop_payload)
 
     write_json(
         objects_path,
@@ -159,6 +207,7 @@ def main():
             "max_detections": args.max_detections,
             "coordinate_convention": coordinate_convention(args.camera_frame),
             "tf": tf_payload,
+            "tabletop": tabletop_payload,
             "objects": detections,
         },
     )
@@ -167,7 +216,14 @@ def main():
     cv2.imwrite(annotated_path, annotated)
     print("Saved annotated detector image: {}".format(annotated_path), flush=True)
 
-    private_state = build_private_state(args, detections, snapshot_path, annotated_path, used_profile)
+    private_state = build_private_state(
+        args,
+        detections,
+        snapshot_path,
+        annotated_path,
+        used_profile,
+        table_plane=table_plane,
+    )
     write_json(private_state_path, private_state)
     print("Saved private scene state: {}".format(private_state_path), flush=True)
 

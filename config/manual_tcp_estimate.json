@@ -1,0 +1,29 @@
+{
+  "schema_version": "tcp_manual_estimate_v1",
+  "calibration_method": "single_aligned_pose",
+  "tool_frame": "tool0",
+  "tcp_frame": "estimated_gripper_center",
+  "tcp_offset_tool_m": [
+    0.05222578061263726,
+    0.055246599982857546,
+    0.1506662258159718
+  ],
+  "quality_pass": true,
+  "validation_scope": "approach-only until verified at multiple yaw angles",
+  "source_tool0_position_base_m": [
+    0.5153750049481687,
+    0.11417872473643008,
+    0.27003175464145607
+  ],
+  "source_tcp_target_base_m": [
+    0.5653,
+    0.0537,
+    0.1206
+  ],
+  "source_tool0_rotation_xyzw": [
+    0.999842988425651,
+    -0.010340062256506912,
+    -0.003678189526328549,
+    0.01391231578147524
+  ]
+}

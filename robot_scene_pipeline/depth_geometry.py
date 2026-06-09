@@ -145,10 +145,21 @@ def public_object(det):
         "center_3d_base_m": [round(v, 4) for v in det["center_3d_base_m"]] if det.get("center_3d_base_m") else None,
         "coordinate_valid": bool(det.get("coordinate_valid")),
         "base_coordinate_valid": bool(det.get("base_coordinate_valid")),
+        "pointcloud_geometry_valid": bool(det.get("pointcloud_geometry_valid")),
+        "geometry_frame": det.get("geometry_frame"),
+        "geometry_center_m": [round(v, 4) for v in det["geometry_center_m"]] if det.get("geometry_center_m") else None,
+        "center_on_table_m": [round(v, 4) for v in det["center_on_table_m"]] if det.get("center_on_table_m") else None,
+        "dimensions_m": [round(v, 4) for v in det["dimensions_m"]] if det.get("dimensions_m") else None,
+        "table_yaw_deg": round(det["table_yaw_deg"], 2) if det.get("table_yaw_deg") is not None else None,
+        "table_yaw_valid": bool(det.get("table_yaw_valid")),
+        "table_yaw_source": det.get("table_yaw_source"),
+        "footprint_aspect_ratio": round(det["footprint_aspect_ratio"], 3)
+        if det.get("footprint_aspect_ratio") is not None
+        else None,
     }
 
 
-def build_private_state(args, detections, snapshot_path, annotated_path, used_profile):
+def build_private_state(args, detections, snapshot_path, annotated_path, used_profile, table_plane=None):
     camera_frame = getattr(args, "camera_frame", "realsense_color_optical_frame")
     base_frame = getattr(args, "base_frame", None)
     return {
@@ -161,6 +172,7 @@ def build_private_state(args, detections, snapshot_path, annotated_path, used_pr
         "camera_profile": used_profile,
         "coordinate_convention": coordinate_convention(camera_frame),
         "base_frame": base_frame,
+        "table_plane": table_plane,
         "objects": [
             dict(
                 public_object(det),

@@ -41,6 +41,12 @@ def transform_to_matrix(transform):
     return mat
 
 
+def resolved_transform_matrix(transform):
+    if isinstance(transform, dict):
+        return np.asarray(transform["matrix_4x4"], dtype=float)
+    return transform_to_matrix(transform)
+
+
 def apply_transform(matrix, point):
     homogeneous = np.array([float(point[0]), float(point[1]), float(point[2]), 1.0], dtype=float)
     output = matrix.dot(homogeneous)
@@ -83,7 +89,12 @@ def lookup_transform_matrix(base_frame, camera_frame, timeout_sec):
 
 
 def attach_base_coordinates(detections, base_frame, camera_frame, timeout_sec, tf_json="", point_mode="optical-to-camera-link"):
-    if tf_json and os.path.exists(tf_json):
+    if tf_json:
+        if not os.path.exists(tf_json):
+            raise RuntimeError(
+                "TF JSON file does not exist: {}. Start tools/tf_lookup_json.py with ROS2 python first, "
+                "or pass an existing --tf-json path.".format(tf_json)
+            )
         with open(tf_json, "r", encoding="utf-8") as f:
             payload = json.load(f)
         matrix = np.array(payload["matrix_4x4"], dtype=float)
